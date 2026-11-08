@@ -103,6 +103,16 @@ echo "sdk.dir=$HOME/Library/Android/sdk" > local.properties
 
 Output: `app/build/outputs/apk/debug/app-debug.apk`.
 
+### Release
+
+```bash
+./gradlew :app:assembleRelease
+```
+
+Output: `app/build/outputs/apk/release/app-release.apk`. Release builds are signed with the keystore committed at `keystore/gpsproxy-release.jks` (alias and password both `gpsproxy`). The key is public and intentionally not secret, so anyone can install the APK and upgrade in place.
+
+CI: `.github/workflows/android-release.yml` builds the release APK on pushes to `main`, `v*` tags, and manual dispatch. Versions come from the tag: `v1.2.3` → `versionName=1.2.3`, `versionCode=1002003`; non-tag builds use the latest tag with a `-snapshot.<sha>` suffix. Regular builds are uploaded as an Actions artifact (kept 30 days); pushing a `v*` tag additionally creates a GitHub Release with the APK attached. Optionally set an `AMAP_WEB_KEY` repository secret to inject the AMap key.
+
 ## Verification
 
 Unit tests cover coordinate-system conversion, route progress, the session state machine, channel strategies, and AMap response parsing (JVM, no device needed):

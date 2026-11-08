@@ -103,6 +103,16 @@ echo "sdk.dir=$HOME/Library/Android/sdk" > local.properties
 
 产物：`app/build/outputs/apk/debug/app-debug.apk`。
 
+### Release
+
+```bash
+./gradlew :app:assembleRelease
+```
+
+产物：`app/build/outputs/apk/release/app-release.apk`。Release 使用仓库内置的 `keystore/gpsproxy-release.jks` 签名（别名与口令均为 `gpsproxy`），密钥公开且不保密，任何人都可直接安装并覆盖升级。
+
+CI：`.github/workflows/android-release.yml` 在推送到 `main`、推送 `v*` 标签或手动触发时构建 Release APK。版本号由 tag 推导：`v1.2.3` → `versionName=1.2.3`、`versionCode=1002003`；非 tag 构建使用最近 tag 加 `-snapshot.<sha>` 后缀。普通构建作为 Actions artifact 上传（保留 30 天）；推送 `v*` 标签会额外创建 GitHub Release 并附加 APK。可选：在仓库 Secrets 中配置 `AMAP_WEB_KEY` 以注入高德 Key。
+
 ## 验证
 
 单元测试覆盖坐标系转换、轨迹进度、会话状态机、通道策略与高德响应解析（JVM，无需设备）：

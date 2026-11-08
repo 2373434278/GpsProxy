@@ -11,7 +11,29 @@ val localProperties = Properties().apply {
     val file = rootProject.file("local.properties")
     if (file.exists()) file.inputStream().use { load(it) }
 }
-val amapWebKey = (localProperties.getProperty("amap.web.key") ?: "").trim()
+val amapWebKey = (localProperties.getProperty("amap.web.key")?.takeIf { it.isNotBlank() }
+    ?: System.getenv("AMAP_WEB_KEY")
+    ?: "").trim()
+
+// 开源发行签名：密钥随仓库公开，密码不保密，任何构建均可直接安装并覆盖升级。
+val releaseKeystore = rootProject.file("keystore/gpsproxy-release.jks")
+val releaseKeystorePassword = "gpsproxy"
+val releaseKeyAlias = "gpsproxy"
+
+fun versionCodeOf(versionName: String): Int {
+    val parts = versionName.substringBefore('-').substringBefore('+')
+        .split('.')
+        .map { part -> part.takeWhile(Char::isDigit).toIntOrNull() ?: 0 }
+    val major = parts.getOrElse(0) { 0 }
+    val minor = parts.getOrElse(1) { 0 }
+    val patch = parts.getOrElse(2) { 0 }
+    return major * 1_000_000 + minor * 1_000 + patch
+}
+
+// CI 由 tag 注入，例如 v1.2.3 → versionName=1.2.3、versionCode=1002003。
+val appVersionName = providers.gradleProperty("versionName").orNull?.takeIf { it.isNotBlank() } ?: "0.1.0"
+val appVersionCode = providers.gradleProperty("versionCode").orNull?.toIntOrNull()
+    ?: versionCodeOf(appVersionName)
 
 android {
     namespace = "com.gpsproxy.dev"
@@ -22,8 +44,8 @@ android {
         minSdk = 27
         // NewBlackbox 引擎要求宿主 targetSdk ≤28 以保证容器兼容性
         targetSdk = 28
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = appVersionCode
+        versionName = appVersionName
 
         buildConfigField("String", "AMAP_WEB_KEY", "\"$amapWebKey\"")
 
@@ -42,8 +64,18 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = releaseKeystore
+            storePassword = releaseKeystorePassword
+            keyAlias = releaseKeyAlias
+            keyPassword = releaseKeystorePassword
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
