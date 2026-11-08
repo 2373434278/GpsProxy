@@ -2,9 +2,19 @@
 
 **简体中文** | [English](README.en.md)
 
+[![Build Release APK](https://github.com/2373434278/GpsProxy/actions/workflows/android-release.yml/badge.svg)](https://github.com/2373434278/GpsProxy/actions/workflows/android-release.yml)
+[![Latest release](https://img.shields.io/github/v/release/2373434278/GpsProxy)](https://github.com/2373434278/GpsProxy/releases/latest)
+
 Android 定位模拟工具，面向开发者与**已获得授权的测试场景**。通过虚拟容器代理或系统测试提供者向目标应用注入模拟坐标，支持地图选点、轨迹巡航与真实路网规划，免 root。
 
 > 仅用于自有 App 或已获得授权的测试场景。将本工具用于考勤打卡、位置欺诈等场景的后果由使用者自行承担。
+
+## 下载
+
+- **正式版**：[GitHub Releases](https://github.com/2373434278/GpsProxy/releases/latest) 下载 `GpsProxy-<version>.apk`。
+- **开发快照**：推送到 `main` 会自动构建，见 [Actions](https://github.com/2373434278/GpsProxy/actions/workflows/android-release.yml)，产物保留 30 天。
+- 所有 APK 均使用公开的 `keystore/gpsproxy-release.jks` 签名，可直接覆盖升级；首次安装需允许「安装未知来源应用」。
+- 仅支持 `arm64-v8a` / `armeabi-v7a`，x86 模拟器不在支持范围。
 
 ## 截图
 
@@ -84,7 +94,7 @@ UI (Compose) → ViewModel → UseCase → SimulationEngine
 
 - Android 8.1（API 27）及以上；`arm64-v8a` / `armeabi-v7a`
 - 系统 Mock 通道需在「开发者选项 → 选择模拟位置信息应用」中授权 GpsProxy
-- 构建：JDK 17、Android SDK（`compileSdk = 36`）
+- 构建：JDK 21、Android SDK（`compileSdk = 36`）、NDK `28.2.13676358`
 - 可选：高德「Web 服务」类型 Key（用于真实 POI 与路径规划）
 
 ## 构建
@@ -107,11 +117,32 @@ echo "sdk.dir=$HOME/Library/Android/sdk" > local.properties
 
 ```bash
 ./gradlew :app:assembleRelease
+
+# 指定版本（不传则默认 0.1.0）
+./gradlew :app:assembleRelease -PversionName=1.2.3
 ```
 
 产物：`app/build/outputs/apk/release/app-release.apk`。Release 使用仓库内置的 `keystore/gpsproxy-release.jks` 签名（别名与口令均为 `gpsproxy`），密钥公开且不保密，任何人都可直接安装并覆盖升级。
 
-CI：`.github/workflows/android-release.yml` 在推送到 `main`、推送 `v*` 标签或手动触发时构建 Release APK。版本号由 tag 推导：`v1.2.3` → `versionName=1.2.3`、`versionCode=1002003`；非 tag 构建使用最近 tag 加 `-snapshot.<sha>` 后缀。普通构建作为 Actions artifact 上传（保留 30 天）；推送 `v*` 标签会额外创建 GitHub Release 并附加 APK。可选：在仓库 Secrets 中配置 `AMAP_WEB_KEY` 以注入高德 Key。
+`versionCode` 由 `versionName` 自动推导，保证升级顺序：
+
+| tag | versionName | versionCode |
+| --- | --- | --- |
+| `v0.1.0` | `0.1.0` | `1000` |
+| `v1.2.3` | `1.2.3` | `1002003` |
+
+### 发布
+
+CI 配置在 `.github/workflows/android-release.yml`，推送到 `main` 构建快照，推送 `v*` 标签发布正式版：
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+- **正式版**：创建 GitHub Release 并附加 `GpsProxy-<version>.apk`。
+- **快照**：推送到 `main` 时自动构建，版本为 `<最近tag>-snapshot.<sha>`，作为 Actions artifact 上传（保留 30 天）。
+- **可选**：在仓库 Secrets 配置 `AMAP_WEB_KEY`，构建时注入高德 Key。
 
 ## 验证
 

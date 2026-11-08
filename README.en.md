@@ -2,9 +2,19 @@
 
 **English** | [简体中文](README.md)
 
+[![Build Release APK](https://github.com/2373434278/GpsProxy/actions/workflows/android-release.yml/badge.svg)](https://github.com/2373434278/GpsProxy/actions/workflows/android-release.yml)
+[![Latest release](https://img.shields.io/github/v/release/2373434278/GpsProxy)](https://github.com/2373434278/GpsProxy/releases/latest)
+
 An Android location simulation tool for developers and **authorized testing scenarios**. It injects mock coordinates into target apps through a virtual container proxy or the system test provider, and supports map picking, route cruising, and real road-network routing — no root required.
 
 > For your own apps or authorized testing only. You are responsible for any consequences of using this tool for attendance spoofing, location fraud, or similar purposes.
+
+## Download
+
+- **Releases**: grab `GpsProxy-<version>.apk` from [GitHub Releases](https://github.com/2373434278/GpsProxy/releases/latest).
+- **Snapshots**: every push to `main` builds one; see [Actions](https://github.com/2373434278/GpsProxy/actions/workflows/android-release.yml). Artifacts are kept for 30 days.
+- All APKs are signed with the public `keystore/gpsproxy-release.jks`, so they upgrade in place; allow "Install unknown apps" the first time.
+- `arm64-v8a` / `armeabi-v7a` only — x86 emulators are not supported.
 
 ## Screenshots
 
@@ -84,7 +94,7 @@ UI (Compose) → ViewModel → UseCase → SimulationEngine
 
 - Android 8.1 (API 27) or later; `arm64-v8a` / `armeabi-v7a`
 - The System Mock channel requires granting GpsProxy in "Developer options → Select mock location app"
-- Build: JDK 17, Android SDK (`compileSdk = 36`)
+- Build: JDK 21, Android SDK (`compileSdk = 36`), NDK `28.2.13676358`
 - Optional: AMap "Web Service" type Key (for real POIs and route planning)
 
 ## Build
@@ -107,11 +117,32 @@ Output: `app/build/outputs/apk/debug/app-debug.apk`.
 
 ```bash
 ./gradlew :app:assembleRelease
+
+# Explicit version (defaults to 0.1.0)
+./gradlew :app:assembleRelease -PversionName=1.2.3
 ```
 
 Output: `app/build/outputs/apk/release/app-release.apk`. Release builds are signed with the keystore committed at `keystore/gpsproxy-release.jks` (alias and password both `gpsproxy`). The key is public and intentionally not secret, so anyone can install the APK and upgrade in place.
 
-CI: `.github/workflows/android-release.yml` builds the release APK on pushes to `main`, `v*` tags, and manual dispatch. Versions come from the tag: `v1.2.3` → `versionName=1.2.3`, `versionCode=1002003`; non-tag builds use the latest tag with a `-snapshot.<sha>` suffix. Regular builds are uploaded as an Actions artifact (kept 30 days); pushing a `v*` tag additionally creates a GitHub Release with the APK attached. Optionally set an `AMAP_WEB_KEY` repository secret to inject the AMap key.
+`versionCode` is derived from `versionName` so upgrades stay ordered:
+
+| tag | versionName | versionCode |
+| --- | --- | --- |
+| `v0.1.0` | `0.1.0` | `1000` |
+| `v1.2.3` | `1.2.3` | `1002003` |
+
+### Releasing
+
+CI lives in `.github/workflows/android-release.yml`: pushes to `main` build snapshots, `v*` tags publish a release.
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+- **Release**: creates a GitHub Release with `GpsProxy-<version>.apk` attached.
+- **Snapshot**: built on every push to `main` as `<latest-tag>-snapshot.<sha>` and uploaded as an Actions artifact (kept 30 days).
+- **Optional**: set an `AMAP_WEB_KEY` repository secret to inject the AMap key at build time.
 
 ## Verification
 
